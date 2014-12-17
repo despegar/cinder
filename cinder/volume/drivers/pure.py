@@ -224,6 +224,7 @@ class PureISCSIDriver(san.SanISCSIDriver):
 
     def _connect(self, volume, connector):
         """Connect the host and volume; return dict describing connection."""
+        connection = None
         vol_name = _get_vol_name(volume)
         host = self._get_host(connector)
         if host:
@@ -237,7 +238,26 @@ class PureISCSIDriver(san.SanISCSIDriver):
                        ).format(host_name=host_name, iqn=iqn))
             self._array.create_host(host_name, iqnlist=[iqn])
 
-        return self._array.connect_host(host_name, vol_name)
+        try:
+            connection = self._array.connect_host(host_name, vol_name)
+        except exception.PureAPIException as err:
+            with excutils.save_and_reraise_exception() as ctxt:
+                if (err.kwargs["code"] == 400 and
+                        "Connection already exists" in err.msg):
+                    # Happens if the volume is already connected to the host.
+                    ctxt.reraise = False
+                    LOG.warn(_("Volume connection already exists with "
+                                 "message: %s") % err.msg)
+                    # Get the info for the existing connection
+                    connected_hosts = self._array.list_volume_hosts(vol_name)
+                    for host_info in connected_hosts:
+                        if host_info["host"] == host_name:
+                            connection = host_info
+                            break
+        if not connection:
+            raise exception.PureDriverException(
+                reason=_("Unable to connect or find connection to host"))
+        return connection
 
     def _get_host(self, connector):
         """Return dict describing existing Purity host object or None."""
