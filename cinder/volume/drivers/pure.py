@@ -29,7 +29,7 @@ from cinder.openstack.common import excutils
 from cinder.openstack.common.gettextutils import _
 from cinder.openstack.common import log as logging
 from cinder.openstack.common import processutils
-from cinder.openstack.common import units
+from cinder import units
 from cinder import utils
 from cinder.volume.drivers.san import san
 
@@ -87,7 +87,7 @@ class PureISCSIDriver(san.SanISCSIDriver):
         """Creates a volume."""
         LOG.debug("Enter PureISCSIDriver.create_volume.")
         vol_name = _get_vol_name(volume)
-        vol_size = volume["size"] * units.Gi
+        vol_size = volume["size"] * units.GiB
         self._array.create_volume(vol_name, vol_size)
         LOG.debug("Leave PureISCSIDriver.create_volume.")
 
@@ -113,7 +113,7 @@ class PureISCSIDriver(san.SanISCSIDriver):
     def _extend_if_needed(self, vol_name, src_size, vol_size):
         """Extend the volume from size src_size to size vol_size."""
         if vol_size > src_size:
-            vol_size = vol_size * units.Gi
+            vol_size = vol_size * units.GiB
             self._array.extend_volume(vol_name, vol_size)
 
     def delete_volume(self, volume):
@@ -123,7 +123,7 @@ class PureISCSIDriver(san.SanISCSIDriver):
         try:
             self._array.destroy_volume(vol_name)
         except exception.PureAPIException as err:
-            with excutils.save_and_reraise_exception as ctxt:
+            with excutils.save_and_reraise_exception() as ctxt:
                 if err.kwargs["code"] == 400:
                     # This happens if the volume does not exist.
                     ctxt.reraise = False
@@ -145,7 +145,7 @@ class PureISCSIDriver(san.SanISCSIDriver):
         try:
             self._array.destroy_volume(snap_name)
         except exception.PureAPIException as err:
-            with excutils.save_and_reraise_exception as ctxt:
+            with excutils.save_and_reraise_exception() as ctxt:
                 if err.kwargs["code"] == 400:
                     # This happens if the snapshot does not exist.
                     ctxt.reraise = False
@@ -227,7 +227,7 @@ class PureISCSIDriver(san.SanISCSIDriver):
             host_name = self._get_host_name(connector)
             self._array.disconnect_host(host_name, vol_name)
         except exception.PureAPIException as err:
-            with excutils.save_and_reraise_exception as ctxt:
+            with excutils.save_and_reraise_exception() as ctxt:
                 if err.kwargs["code"] == 400:
                     # This happens if the host and volume are not connected
                     ctxt.reraise = False
@@ -251,8 +251,8 @@ class PureISCSIDriver(san.SanISCSIDriver):
     def _update_stats(self):
         """Set self._stats with relevant information."""
         info = self._array.get_array(space=True)
-        total = float(info["capacity"]) / units.Gi
-        free = float(info["capacity"] - info["total"]) / units.Gi
+        total = float(info["capacity"]) / units.GiB
+        free = float(info["capacity"] - info["total"]) / units.GiB
         data = {"volume_backend_name": self._backend_name,
                 "vendor_name": "Pure Storage",
                 "driver_version": self.VERSION,
@@ -267,7 +267,7 @@ class PureISCSIDriver(san.SanISCSIDriver):
         """Extend volume to new_size."""
         LOG.debug("Enter PureISCSIDriver.extend_volume.")
         vol_name = _get_vol_name(volume)
-        new_size = new_size * units.Gi
+        new_size = new_size * units.GiB
         self._array.extend_volume(vol_name, new_size)
         LOG.debug("Leave PureISCSIDriver.extend_volume.")
 
