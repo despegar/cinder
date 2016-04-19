@@ -431,12 +431,12 @@ class FlashArray(object):
 
     def create_host(self, host, **kwargs):
         """Create a host."""
-        return self._http_request("POST", "host/%s/volume" % host, kwargs)
+        return self._http_request("POST", "host/{host_name}".format(
             host_name=host), kwargs)
 
     def delete_host(self, host):
         """Delete a host."""
-        return self._http_request("DELETE", "host/%s/volume" % host)
+        return self._http_request("DELETE", "host/{host_name}".format(
             host_name=host))
 
     def connect_host(self, host, volume, **kwargs):
